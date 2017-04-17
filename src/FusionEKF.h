@@ -36,7 +36,7 @@ private:
   bool is_initialized_;
 
   // previous timestamp
-  long long previous_timestamp_;
+  long long previous_timestamp_; // was "long" before - did not work due to 10^9 timestamps...
 
   // tool object used to compute Jacobian and RMSE
   Tools tools;
