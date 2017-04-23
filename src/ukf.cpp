@@ -40,8 +40,8 @@ UKF::UKF() {
 	P_ = MatrixXd(n_x_, n_x_);
 	P_ = MatrixXd::Identity(n_x_, n_x_);
 	// initialize higher uncertainty for yaw and yaw_dot
-	P_(2, 2) = 10;
-	P_(3, 3) = 10;
+	//P_(2, 2) = 10;
+	//P_(3, 3) = 10;
 
 
 	// initialize sigma points matrix
@@ -114,11 +114,11 @@ UKF::UKF() {
 
 	// TODO: Tune longitudinal acceleration process noise
 	// Process noise standard deviation longitudinal acceleration in m/s^2
-	std_a_ = 0.1;
+	std_a_ = 0.2;
 
 	// TODO: Tune yaw acceleration process noise
 	// Process noise standard deviation yaw acceleration in rad/s^2
-	std_yawdd_ = 1.0; //M_PI/3;
+	std_yawdd_ = 0.6; //M_PI/3;
 
 	// Laser measurement noise standard deviation position1 in m
 	std_laspx_ = 0.15;
@@ -165,8 +165,8 @@ void UKF::ProcessMeasurement(MeasurementPackage measurement_pack) {
 			// Convert from polar to cartesian coordinates
 			double x = rho * cos(phi);
 			double y = rho * sin(phi);
-			double v = sqrt((rho_dot * cos(phi) * rho_dot * cos(phi)) + (rho_dot * sin(phi) * rho_dot * sin(phi)));
-			//double v = 0;
+			//double v = sqrt((rho_dot * cos(phi) * rho_dot * cos(phi)) + (rho_dot * sin(phi) * rho_dot * sin(phi)));
+			double v = 0;
 			double sigma = 0;
 			double sigma_dot = 0;
 			x_ << x, y, v, sigma, sigma_dot;
@@ -181,14 +181,16 @@ void UKF::ProcessMeasurement(MeasurementPackage measurement_pack) {
 		}
 		// Deal with the special case initialisation problems
 		if (fabs(x_(0)) < EPS) {
-			x_(0) = 1;
+			return;
+			//x_(0) = 1;
 			// higher uncertainty for p_x
-			P_(0, 0) = 10;
+			// P_(0, 0) = 100;
 		}
 		if (fabs(x_(1)) < EPS) {
-			x_(1) = 1;
+			return;
+			// x_(1) = 1;
 			// higher uncertainty for p_y
-			P_(1, 1) = 10;
+			// P_(1, 1) = 100;
 		}
 
 		// Print the initialization results
@@ -210,12 +212,13 @@ void UKF::ProcessMeasurement(MeasurementPackage measurement_pack) {
 		delta_t_ /= 1000000.0; // convert delta t to s
 		time_us_ = measurement_pack.timestamp_;
 		//cout << "delta t: " << delta_t_ << endl;
-
+		/*
 		if (delta_t_ == 0) {
-			//delta_t_ = 1;
+			delta_t_ = 1;
 			//cout << "delta_t_ is zero" << endl;
 		}
-		
+		*/
+
 		// Predict
 		Prediction(delta_t_);
 		
