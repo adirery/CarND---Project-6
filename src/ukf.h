@@ -32,53 +32,8 @@ public:
 	///* sigma points matrix
 	MatrixXd Xsig_;
 
-	///* augmented state vector: [pos1 pos2 vel_abs yaw_angle yaw_rate] in SI units and rad
-	VectorXd x_aug_;
-
-	///* augmented state covariance matrix
-	MatrixXd P_aug_;
-
-	///* augmented sigma points matrix
-	MatrixXd Xsig_aug_;
-
 	///* predicted sigma points matrix
 	MatrixXd Xsig_pred_;
-
-	///* sigma points in measurement space matrix - Radar
-	MatrixXd Zsig_Radar_;
-
-	///* radar measurement
-	VectorXd z_Radar_;
-	
-	///* mean predicted radar measurement
-	VectorXd z_pred_Radar_;
-
-	///* radar measurement covariance matrix S
-	MatrixXd S_Radar_;
-
-	///* radar measurement noise covariance matrix
-	MatrixXd R_Radar_;
-
-	///* radar cross correlation matrix
-	MatrixXd Tc_Radar_;
-
-	///* sigma points in measurement space matrix - Radar
-	MatrixXd Zsig_Lidar_;
-
-	///* radar measurement
-	VectorXd z_Lidar_;
-
-	///* mean predicted radar measurement
-	VectorXd z_pred_Lidar_;
-
-	///* radar measurement covariance matrix S
-	MatrixXd S_Lidar_;
-
-	///* radar measurement noise covariance matrix
-	MatrixXd R_Lidar_;
-
-	///* radar cross correlation matrix
-	MatrixXd Tc_Lidar_;
 
 	///* time when the state is true, in us
 	long long time_us_;
@@ -116,12 +71,6 @@ public:
 	///* Augmented state dimension
 	int n_aug_;
 
-	///* Measurement state dimension Radar
-	int n_z_Radar_;
-
-	///* Measurement state dimension Lidar
-	int n_z_Lidar_;
-
 	///* Sigma point spreading parameter
 	double lambda_;
 
@@ -146,7 +95,8 @@ public:
 	* @param meas_package The latest measurement data of either radar or laser
 	*/
 	void ProcessMeasurement(MeasurementPackage measurement_pack);
-
+	
+	void GenerateSigmaPoints(double delta_t);
 	/**
 	* Prediction Predicts sigma points, the state, and the state covariance
 	* matrix

@@ -79,49 +79,58 @@ int main(int argc, char* argv[]) {
 
     // reads first element from the current line
     iss >> sensor_type;
+	
     if (sensor_type.compare("L") == 0) {
       // LASER MEASUREMENT
 
       // read measurements at this timestamp
       meas_package.sensor_type_ = MeasurementPackage::LASER;
       meas_package.raw_measurements_ = VectorXd(2);
-      float x;
-      float y;
+      double x;
+			double y;
       iss >> x;
       iss >> y;
       meas_package.raw_measurements_ << x, y;
+
       iss >> timestamp;
       meas_package.timestamp_ = timestamp;
       measurement_pack_list.push_back(meas_package);
-    } else if (sensor_type.compare("R") == 0) {
+    } 
+		else if (sensor_type.compare("R") == 0) {
       // RADAR MEASUREMENT
 
       // read measurements at this timestamp
       meas_package.sensor_type_ = MeasurementPackage::RADAR;
       meas_package.raw_measurements_ = VectorXd(3);
-      float ro;
-      float phi;
-      float ro_dot;
+			double ro;
+			double phi;
+			double ro_dot;
       iss >> ro;
       iss >> phi;
       iss >> ro_dot;
       meas_package.raw_measurements_ << ro, phi, ro_dot;
+
       iss >> timestamp;
       meas_package.timestamp_ = timestamp;
       measurement_pack_list.push_back(meas_package);
     }
 
     // read ground truth data to compare later
-    float x_gt;
-    float y_gt;
-    float vx_gt;
-    float vy_gt;
+		double x_gt;
+		double y_gt;
+		double vx_gt;
+		double vy_gt;
+		double yaw_gt;
+		double yaw_rate_gt;
     iss >> x_gt;
     iss >> y_gt;
     iss >> vx_gt;
     iss >> vy_gt;
-    gt_package.gt_values_ = VectorXd(4);
-    gt_package.gt_values_ << x_gt, y_gt, vx_gt, vy_gt;
+		iss >> yaw_gt;
+		iss >> yaw_rate_gt;
+
+    gt_package.gt_values_ = VectorXd(6);
+		gt_package.gt_values_ << x_gt, y_gt, vx_gt, vy_gt, yaw_gt, yaw_rate_gt;
     gt_pack_list.push_back(gt_package);
   }
 
@@ -161,8 +170,11 @@ int main(int argc, char* argv[]) {
 	out_file_ << "py_ground_truth" << "\t";
 	out_file_ << "vx_ground_truth" << "\t";
 	out_file_ << "vy_ground_truth" << "\t";
-	out_file_ << "v_ground_truth" << "\n";
+	out_file_ << "v_ground_truth" << "\t";
+	out_file_ << "yaw_ground_truth" << "\t";
+	out_file_ << "yaw_rate_ground_truth" << "\n";
 
+	/*
 	// Executing Extended Kalman Filter for each measurement
   for (size_t k = 0; k < number_of_measurements; ++k) {
     // start filtering from the second frame (the speed is unknown in the first
@@ -197,23 +209,22 @@ int main(int argc, char* argv[]) {
     estimations_EKF.push_back(fusionEKF.ekf_.x_);
     ground_truth_EKF.push_back(gt_pack_list[k].gt_values_);
   }
+	*/
 
 	// Executing Unscented Kalman Filter for each measurement
-	for (size_t k = 0; k < number_of_measurements; ++k) {
+	for (size_t k = 1; k < number_of_measurements; ++k) {
 		// Call the UKF-based fusion
 		ukf.ProcessMeasurement(measurement_pack_list[k]);
 
 		// timestamp
-		out_file_ << measurement_pack_list[k].timestamp_ << "\t"; // pos1 - est
-
-																															// output the state vector
+		out_file_ << measurement_pack_list[k].timestamp_ << "\t";
 		out_file_ << ukf.x_(0) << "\t"; // pos1 - est
 		out_file_ << ukf.x_(1) << "\t"; // pos2 - est
 		out_file_ << ukf.x_(2) << "\t"; // vel_abs -est
 		out_file_ << ukf.x_(3) << "\t"; // yaw_angle -est
 		out_file_ << ukf.x_(4) << "\t"; // yaw_rate -est
 
-																		// output lidar and radar specific data
+		// output lidar and radar specific data
 		if (measurement_pack_list[k].sensor_type_ == MeasurementPackage::LASER) {
 			// sensor type
 			out_file_ << "lidar" << "\t";
@@ -234,8 +245,8 @@ int main(int argc, char* argv[]) {
 			out_file_ << ukf.NIS_radar_ << "\t";
 
 			// output radar measurement in cartesian coordinates
-			float ro = measurement_pack_list[k].raw_measurements_(0);
-			float phi = measurement_pack_list[k].raw_measurements_(1);
+			double ro = measurement_pack_list[k].raw_measurements_(0);
+			double phi = measurement_pack_list[k].raw_measurements_(1);
 			out_file_ << ro * cos(phi) << "\t"; // px measurement
 			out_file_ << ro * sin(phi) << "\t"; // py measurement
 		}
@@ -245,17 +256,21 @@ int main(int argc, char* argv[]) {
 		out_file_ << gt_pack_list[k].gt_values_(1) << "\t";	// pos y - ground truth
 		out_file_ << gt_pack_list[k].gt_values_(2) << "\t";	// vel_x - ground truth
 		out_file_ << gt_pack_list[k].gt_values_(3) << "\t"; // vel_y - ground truth
-		out_file_ << sqrt(gt_pack_list[k].gt_values_(2) * gt_pack_list[k].gt_values_(2) + gt_pack_list[k].gt_values_(3) * gt_pack_list[k].gt_values_(3)) << "\n"; // vel_y - ground truth
+		out_file_ << sqrt(gt_pack_list[k].gt_values_(2) * gt_pack_list[k].gt_values_(2) + gt_pack_list[k].gt_values_(3) * gt_pack_list[k].gt_values_(3)) << "\t"; // vel_y - ground truth
+		out_file_ << gt_pack_list[k].gt_values_(4) << "\t"; // yaw - ground truth
+		out_file_ << gt_pack_list[k].gt_values_(5) << "\n"; // yaw_rate - ground truth
 
 		// convert ukf x vector to cartesian to compare to ground truth
-		VectorXd ukf_x_cartesian_ = VectorXd(4);	
+		VectorXd ukf_x_cartesian_ = VectorXd(6);	
 
-		float x_estimate_ = ukf.x_(0);
-		float y_estimate_ = ukf.x_(1);
-		float vx_estimate_ = ukf.x_(2) * cos(ukf.x_(3));
-		float vy_estimate_ = ukf.x_(2) * sin(ukf.x_(3));
+		double x_estimate_ = ukf.x_(0);
+		double y_estimate_ = ukf.x_(1);
+		double vx_estimate_ = ukf.x_(2) * cos(ukf.x_(3));
+		double vy_estimate_ = ukf.x_(2) * sin(ukf.x_(3));
+		double yaw_estimate = ukf.x_(3);
+		double yaw_rate_estimate = ukf.x_(4);
 
-		ukf_x_cartesian_ << x_estimate_, y_estimate_, vx_estimate_, vy_estimate_;
+		ukf_x_cartesian_ << x_estimate_, y_estimate_, vx_estimate_, vy_estimate_, yaw_estimate, yaw_rate_estimate;
 
 		estimations_UKF.push_back(ukf_x_cartesian_);
 		ground_truth_UKF.push_back(gt_pack_list[k].gt_values_);
@@ -266,7 +281,7 @@ int main(int argc, char* argv[]) {
 
   // compute the accuracy (RMSE)
   Tools tools;
-  cout << "Accuracy - RMSE (EKF):" << endl << tools.CalculateRMSE(estimations_EKF, ground_truth_UKF) << endl;
+  //cout << "Accuracy - RMSE (EKF):" << endl << tools.CalculateRMSE(estimations_EKF, ground_truth_EKF) << endl;
 	cout << "Accuracy - RMSE (UKF):" << endl << tools.CalculateRMSE(estimations_UKF, ground_truth_UKF) << endl;
 
   // close files
